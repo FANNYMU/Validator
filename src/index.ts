@@ -48,6 +48,24 @@ function statusBadge(success: boolean) {
   return success ? chalk.bgGreen.black(" PASS ") : chalk.bgRed.white(" FAIL ");
 }
 
+/**
+ * Handles streaming AI-generated API test cases to the client via Server-Sent Events (SSE).
+ *
+ * @param prompt - The user input describing the API endpoints, methods, and requirements for test case generation.
+ * @param res - The Express response object used to stream data to the client.
+ *
+ * This function processes the user prompt to generate API test cases using an AI model. It streams the test execution
+ * results back to the client in real-time, including details such as test case metadata, execution status, and response data.
+ *
+ * The streaming format follows the Server-Sent Events (SSE) protocol, allowing the client to receive updates as tests are executed.
+ *
+ * Example usage:
+ * ```
+ * await streamingAiParser('Generate test cases for a user API with GET and POST methods.', res);
+ * ```
+ *
+ * @throws An error if the AI model fails to generate test cases or if an issue occurs during test execution.
+ */
 async function streamingAiParser(prompt: string, res: express.Response) {
   try {
     res.writeHead(200, {

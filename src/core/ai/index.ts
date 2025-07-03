@@ -46,6 +46,23 @@ Wrap all test cases in a JSON array. Respond ONLY with JSON. No explanations, no
 If input is ambiguous or incomplete, make realistic assumptions based on common API patterns.
 `;
 
+/**
+ * Generates a set of API test cases in JSON format based on the provided user prompt.
+ *
+ * @param prompt - The user input describing the API endpoints, methods, and requirements for test case generation.
+ * @returns A promise that resolves to a string containing the generated JSON test cases.
+ *
+ * This function uses a predefined AI system prompt to instruct the model on how to create realistic and complete API test cases.
+ * The generated test cases include details such as HTTP method, endpoint, headers, parameters, and data type.
+ *
+ * Example usage:
+ * ```
+ * const testCasesJson = await requestGeneratorXml('Generate test cases for a user API with GET and POST methods.');
+ * console.log(testCasesJson);
+ * ```
+ *
+ * @throws An error if the AI model fails to generate a response or encounters an issue during processing.
+ */
 export async function requestGeneratorXml(prompt: string): Promise<string> {
   try {
     const response = await groqInstance.groqInstance.chat.completions.create({

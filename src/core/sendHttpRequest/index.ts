@@ -6,6 +6,23 @@ interface HttpResponse {
   success: boolean;
 }
 
+/**
+ * Sends an HTTP request to the specified URL using the given method, headers, and optional data.
+ *
+ * @param url - The URL to send the request to.
+ * @param method - The HTTP method to use (e.g., "GET", "POST", "PUT", "PATCH").
+ * @param data - Optional data to include in the request body. The format depends on the "Content-Type" header.
+ * @param headers - Optional headers to include in the request. Defaults to an empty object.
+ * @returns A promise that resolves to an HttpResponse object containing the response data, status, headers, and success flag.
+ *
+ * @throws An error if the HTTP request fails or the response status is not OK (2xx).
+ *
+ * Example usage:
+ * ```
+ * const response = await sendHttpRequest('https://api.example.com/resource', 'POST', { key: 'value' }, { 'Content-Type': 'application/json' });
+ * console.log(response.data);
+ * ```
+ */
 export async function sendHttpRequest(
   url: string,
   method: string,

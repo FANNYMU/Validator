@@ -63,6 +63,20 @@ function formatJson(obj: any, indent: number = 2): string {
     .join("\n");
 }
 
+/**
+ * Sends a request to the AI with a given prompt or a default prompt.
+ *
+ * @param prompt - The prompt to send to the AI. If not provided, a default prompt is used.
+ * @returns A promise that resolves to a string containing the response from the AI.
+ *
+ * @throws An error if the request fails or the response is undefined.
+ *
+ * Example usage:
+ * ```
+ * const response = await requestToAi('Generate API documentation');
+ * console.log(response);
+ * ```
+ */
 export async function requestToAi(prompt?: string) {
   try {
     const defaultPrompt = `
@@ -100,6 +114,20 @@ export async function requestToAi(prompt?: string) {
   }
 }
 
+/**
+ * Parses AI-generated test cases from a given prompt and executes them as API tests.
+ *
+ * @param prompt - Optional prompt to generate test cases. If not provided, a default prompt is used.
+ * @returns A promise that resolves to an array of TestResult objects containing details of each test execution.
+ *
+ * @throws An error if the AI response is undefined or if parsing fails.
+ *
+ * Example usage:
+ * ```
+ * const testResults = await aiParser('Generate test cases for API endpoints');
+ * console.log(testResults);
+ * ```
+ */
 export async function aiParser(prompt?: string) {
   const aiResponse = await requestToAi(prompt);
   if (!aiResponse) {
