@@ -1,0 +1,7 @@
+/dist
+/.ropeproject
+/dist
+/node_modules
+/example/.venv
+/example/__pycache__
+/.env
