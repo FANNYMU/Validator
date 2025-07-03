@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test Generator Dashboard</title>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --card: 0 0% 100%;
+            --card-foreground: 222.2 84% 4.9%;
+            --popover: 0 0% 100%;
+            --popover-foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96%;
+            --secondary-foreground: 222.2 84% 4.9%;
+            --muted: 210 40% 96%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96%;
+            --accent-foreground: 222.2 84% 4.9%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --card: 222.2 84% 4.9%;
+            --card-foreground: 210 40% 98%;
+            --popover: 222.2 84% 4.9%;
+            --popover-foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 84% 4.9%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 212.7 26.8% 83.9%;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: hsl(var(--muted-foreground));
+            font-size: 1.125rem;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: hsl(var(--background));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        }
+
+        .theme-toggle:hover {
+            background: hsl(var(--accent));
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 1024px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: calc(var(--radius) + 2px);
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        }
+
+        .card-header {
+            padding: 1.5rem 1.5rem 0;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+            line-height: 1.6;
+        }
+
+        .card-description {
+            color: hsl(var(--muted-foreground));
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .card-content {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: hsl(var(--foreground));
+        }
+
+        .input, .textarea {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+            background: hsl(var(--background));
+            color: hsl(var(--foreground));
+            font-size: 0.875rem;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        .input:focus, .textarea:focus {
+            border-color: hsl(var(--ring));
+            box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+        }
+
+        .textarea {
+            min-height: 120px;
+            resize: vertical;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            line-height: 1.5;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+            gap: 0.375rem;
+            white-space: nowrap;
+        }
+
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .button-primary {
+            background: hsl(var(--primary));
+            color: hsl(var(--primary-foreground));
+        }
+
+        .button-primary:hover:not(:disabled) {
+            background: hsl(var(--primary) / 0.9);
+        }
+
+        .button-secondary {
+            background: hsl(var(--secondary));
+            color: hsl(var(--secondary-foreground));
+        }
+
+        .button-secondary:hover:not(:disabled) {
+            background: hsl(var(--secondary) / 0.8);
+        }
+
+        .button-outline {
+            border: 1px solid hsl(var(--border));
+            background: hsl(var(--background));
+            color: hsl(var(--foreground));
+        }
+
+        .button-outline:hover:not(:disabled) {
+            background: hsl(var(--accent));
+            color: hsl(var(--accent-foreground));
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .stat-label {
+            color: hsl(var(--muted-foreground));
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .test-results {
+            background: hsl(var(--muted));
+            border-radius: var(--radius);
+            padding: 1rem;
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .test-case {
+            background: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .test-case-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+            gap: 0.5rem;
+        }
+
+        .test-case-title {
+            font-weight: 600;
+            font-size: 0.875rem;
+            flex: 1;
+        }
+
+        .test-case-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.125rem 0.375rem;
+            border-radius: calc(var(--radius) - 2px);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .badge-success {
+            background: hsl(142 76% 36% / 0.1);
+            color: hsl(142 76% 36%);
+        }
+
+        .badge-error {
+            background: hsl(var(--destructive) / 0.1);
+            color: hsl(var(--destructive));
+        }
+
+        .method-badge {
+            padding: 0.125rem 0.375rem;
+            border-radius: calc(var(--radius) - 2px);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .method-get { background: hsl(142 76% 36% / 0.1); color: hsl(142 76% 36%); }
+        .method-post { background: hsl(217 91% 60% / 0.1); color: hsl(217 91% 60%); }
+        .method-put { background: hsl(38 92% 50% / 0.1); color: hsl(38 92% 50%); }
+        .method-delete { background: hsl(var(--destructive) / 0.1); color: hsl(var(--destructive)); }
+
+        .test-case-details {
+            color: hsl(var(--muted-foreground));
+            font-size: 0.75rem;
+            line-height: 1.4;
+            margin-top: 0.75rem;
+        }
+
+        .test-details-section {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: hsl(var(--muted));
+            border-radius: calc(var(--radius) - 2px);
+            border: 1px solid hsl(var(--border));
+        }
+
+        .test-details-title {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: hsl(var(--foreground));
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .test-details-content {
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 0.7rem;
+            line-height: 1.4;
+            background: hsl(var(--background));
+            padding: 0.5rem;
+            border-radius: calc(var(--radius) - 3px);
+            border: 1px solid hsl(var(--border));
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        .test-details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .test-details-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .response-success {
+            color: hsl(142 76% 36%);
+        }
+
+        .response-error {
+            color: hsl(var(--destructive));
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .collapsible-content.expanded {
+            max-height: 1000px;
+        }
+
+        .expand-toggle {
+            cursor: pointer;
+            color: hsl(var(--primary));
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+            user-select: none;
+        }
+
+        .expand-toggle:hover {
+            text-decoration: underline;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid hsl(var(--primary-foreground) / 0.3);
+            border-radius: 50%;
+            border-top-color: hsl(var(--primary-foreground));
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: var(--radius);
+            margin-bottom: 1rem;
+            border: 1px solid;
+        }
+
+        .alert-success {
+            background: hsl(142 76% 36% / 0.1);
+            border-color: hsl(142 76% 36% / 0.2);
+            color: hsl(142 76% 36%);
+        }
+
+        .alert-error {
+            background: hsl(var(--destructive) / 0.1);
+            border-color: hsl(var(--destructive) / 0.2);
+            color: hsl(var(--destructive));
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 0.5rem;
+            background: hsl(var(--muted));
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: hsl(var(--primary));
+            transition: width 0.3s ease;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: hsl(var(--muted-foreground));
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .scrollbar-thin {
+            scrollbar-width: thin;
+            scrollbar-color: hsl(var(--border)) hsl(var(--background));
+        }
+
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: hsl(var(--background));
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: hsl(var(--border));
+            border-radius: 3px;
+        }
+
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: hsl(var(--muted-foreground));
+        }
+
+        .shortcuts-info {
+            position: fixed;
+            bottom: 1rem;
+            left: 1rem;
+            background: hsl(var(--card));
+            border: 1px solid hsl(var(--border));
+            border-radius: var(--radius);
+            padding: 0.75rem;
+            font-size: 0.75rem;
+            color: hsl(var(--muted-foreground));
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        }
+
+        .shortcuts-info kbd {
+            background: hsl(var(--muted));
+            padding: 0.125rem 0.25rem;
+            border-radius: calc(var(--radius) - 2px);
+            font-size: 0.6875rem;
+            border: 1px solid hsl(var(--border));
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.875rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .shortcuts-info {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-toggle" onclick="toggleTheme()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <h1>API Test Generator</h1>
+            <p>AI-powered API testing with elegant real-time results</p>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Generate Test Cases</h2>
+                    <p class="card-description">Describe your API endpoints and let AI generate comprehensive test cases</p>
+                </div>
+                <div class="card-content">
+                    <form id="testForm">
+                        <div class="form-group">
+                            <label class="label" for="apiDescription">API Description</label>
+                            <textarea
+                                id="apiDescription"
+                                class="textarea"
+                                placeholder="POST http://127.0.0.1:8000/register — requires username, email, and password as QUERY PARAMETERS. Returns 200 OK if successful.
+
+POST http://127.0.0.1:8000/login — requires email and password as QUERY PARAMETERS. Returns 200 OK with JSON token.
+
+GET http://127.0.0.1:8000/user/{username} — requires x-token header with value 'mocked-jwt-token'. Returns 200 OK with user data."
+                            ></textarea>
+                        </div>
+
+                        <div class="button-group">
+                            <button type="submit" class="button button-primary" id="generateBtn">
+                                <span id="generateText">Generate & Run Tests</span>
+                            </button>
+                            <button type="button" class="button button-outline" onclick="clearResults()">
+                                Clear Results
+                            </button>
+                            <button type="button" class="button button-secondary" onclick="loadDemo()">
+                                Load Demo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Test Results</h2>
+                    <p class="card-description">Real-time execution results and statistics</p>
+                </div>
+                <div class="card-content">
+                    <div id="statsContainer" style="display: none;">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number" id="totalTests">0</div>
+                                <div class="stat-label">Total</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number" id="passedTests" style="color: hsl(142 76% 36%);">0</div>
+                                <div class="stat-label">Passed</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number" id="failedTests" style="color: hsl(var(--destructive));">0</div>
+                                <div class="stat-label">Failed</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number" id="duration">0ms</div>
+                                <div class="stat-label">Duration</div>
+                            </div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div id="resultsContainer">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🧪</div>
+                            <p>No tests run yet</p>
+                            <p>Generate test cases to see detailed results here</p>
+                        </div>
+                    </div>
+
+                    <div class="button-group" style="margin-top: 1rem; display: none;" id="resultsActions">
+                        <button type="button" class="button button-outline" onclick="expandAllDetails()">
+                            📋 Expand All
+                        </button>
+                        <button type="button" class="button button-outline" onclick="collapseAllDetails()">
+                            📋 Collapse All
+                        </button>
+                        <button type="button" class="button button-outline" onclick="exportResults()">
+                            💾 Export Results
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="testCasesContainer"></div>
+    </div>
+
+    <div class="shortcuts-info">
+        <strong>Shortcuts:</strong>
+        <kbd>Ctrl</kbd>+<kbd>Enter</kbd> Run tests
+        <kbd>Ctrl</kbd>+<kbd>K</kbd> Clear
+        <kbd>Ctrl</kbd>+<kbd>D</kbd> Demo
+    </div>
+
+    <script>
+        let isRunning = false;
+        let currentTests = [];
+        let currentResults = [];
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark');
+            localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+        }
+
+        // Load saved theme
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark');
+        }
+
+        function clearResults() {
+            document.getElementById('resultsContainer').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🧪</div>
+                    <p>No tests run yet</p>
+                    <p>Generate test cases to see detailed results here</p>
+                </div>
+            `;
+            document.getElementById('testCasesContainer').innerHTML = '';
+            document.getElementById('statsContainer').style.display = 'none';
+            document.getElementById('resultsActions').style.display = 'none';
+            currentTests = [];
+            currentResults = [];
+        }
+
+        function updateStats(total, passed, failed, duration, current = 0) {
+            document.getElementById('totalTests').textContent = total;
+            document.getElementById('passedTests').textContent = passed;
+            document.getElementById('failedTests').textContent = failed;
+            document.getElementById('duration').textContent = duration + 'ms';
+
+            const progress = total > 0 ? (current / total) * 100 : 0;
+            document.getElementById('progressFill').style.width = progress + '%';
+
+            document.getElementById('statsContainer').style.display = 'block';
+        }
+
+        function addTestCase(testCase, result, index) {
+            const container = document.getElementById('testCasesContainer');
+            const methodClass = `method-${testCase.method.toLowerCase()}`;
+            const statusBadge = result.success ?
+                '<span class="badge badge-success">✓ Pass</span>' :
+                '<span class="badge badge-error">✗ Fail</span>';
+
+            const duration = result.duration || 0;
+            const endpoint = testCase.endpoint || 'Unknown endpoint';
+            const error = result.error || '';
+
+            // Format request details
+            const hasHeaders = testCase.headers && Object.keys(testCase.headers).length > 0;
+            const hasParams = testCase.params && Object.keys(testCase.params).length > 0;
+            const hasBody = testCase.body && Object.keys(testCase.body).length > 0;
+
+            const requestHeaders = hasHeaders ? JSON.stringify(testCase.headers, null, 2) : 'None';
+            const requestParams = hasParams ? JSON.stringify(testCase.params, null, 2) : 'None';
+            const requestBody = hasBody ? JSON.stringify(testCase.body, null, 2) : 'None';
+
+            // Format response
+            const responseData = result.response ? JSON.stringify(result.response, null, 2) : 'No response data';
+            const responseClass = result.success ? 'response-success' : 'response-error';
+
+            const testCaseHtml = `
+                <div class="test-case" id="test-${index}">
+                    <div class="test-case-header">
+                        <span class="test-case-title">${testCase.name}</span>
+                        <div class="test-case-meta">
+                            ${statusBadge}
+                            <span class="method-badge ${methodClass}">${testCase.method}</span>
+                        </div>
+                    </div>
+                    <div class="test-case-details">
+                        <strong>Endpoint:</strong> ${endpoint}<br>
+                        <strong>Duration:</strong> ${duration}ms<br>
+                        <strong>Data Type:</strong> ${testCase.dataType || 'json'}<br>
+                        ${error ? `<strong>Error:</strong> ${error}` : `<strong>Status Code:</strong> ${result.statusCode || 'N/A'}`}
+
+                        <div class="expand-toggle" onclick="toggleDetails(${index})">
+                            📋 Show Details
+                        </div>
+
+                        <div class="collapsible-content" id="details-${index}">
+                            <div class="test-details-grid">
+                                <div class="test-details-section">
+                                    <div class="test-details-title">
+                                        📤 Request Headers
+                                    </div>
+                                    <div class="test-details-content">${requestHeaders}</div>
+                                </div>
+
+                                <div class="test-details-section">
+                                    <div class="test-details-title">
+                                        📦 Request Parameters
+                                    </div>
+                                    <div class="test-details-content">${requestParams}</div>
+                                </div>
+                            </div>
+
+                            ${hasBody ? `
+                            <div class="test-details-section">
+                                <div class="test-details-title">
+                                    📝 Request Body
+                                </div>
+                                <div class="test-details-content">${requestBody}</div>
+                            </div>
+                            ` : ''}
+
+                            <div class="test-details-section">
+                                <div class="test-details-title">
+                                    ${result.success ? '✅' : '❌'} Response Data
+                                </div>
+                                <div class="test-details-content ${responseClass}">${responseData}</div>
+                            </div>
+
+                            ${result.responseHeaders ? `
+                            <div class="test-details-section">
+                                <div class="test-details-title">
+                                    📥 Response Headers
+                                </div>
+                                <div class="test-details-content">${JSON.stringify(result.responseHeaders, null, 2)}</div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', testCaseHtml);
+        }
+
+        function toggleDetails(index) {
+            const details = document.getElementById(`details-${index}`);
+            const toggle = document.querySelector(`#test-${index} .expand-toggle`);
+
+            if (details.classList.contains('expanded')) {
+                details.classList.remove('expanded');
+                toggle.textContent = '📋 Show Details';
+            } else {
+                details.classList.add('expanded');
+                toggle.textContent = '📋 Hide Details';
+            }
+        }
+
+        function setLoading(loading) {
+            const btn = document.getElementById('generateBtn');
+            const text = document.getElementById('generateText');
+
+            if (loading) {
+                btn.disabled = true;
+                text.innerHTML = '<span class="loading-spinner"></span>Generating & Running Tests...';
+            } else {
+                btn.disabled = false;
+                text.innerHTML = 'Generate & Run Tests';
+            }
+            isRunning = loading;
+        }
+
+        async function callAiParser(prompt) {
+            try {
+                const response = await fetch('/api/parse', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                handleStreamData(data);
+                            } catch (e) {
+                                console.error('Error parsing stream data:', e);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error calling aiParser:', error);
+                document.getElementById('resultsContainer').innerHTML = `
+                    <div class="alert alert-error">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function handleStreamData(data) {
+            switch (data.type) {
+                case 'start':
+                    document.getElementById('resultsContainer').innerHTML = `
+                        <div style="padding: 1rem; text-align: center;">
+                            <div class="loading-spinner"></div>
+                            <p>Starting API test suite...</p>
+                        </div>
+                    `;
+                    break;
+
+                case 'test_start':
+                    document.getElementById('resultsContainer').innerHTML = `
+                        <div style="padding: 1rem; text-align: center;">
+                            <div class="loading-spinner"></div>
+                            <p>Running test ${data.index + 1}/${data.total}: ${data.testCase.name}</p>
+                        </div>
+                    `;
+                    break;
+
+                case 'test_complete':
+                    const result = data.result;
+                    const testCase = data.testCase;
+                    const index = data.index;
+
+                    const enhancedResult = {
+                        ...result,
+                        response: data.response,
+                        responseHeaders: data.responseHeaders,
+                        requestDetails: {
+                            headers: testCase.headers,
+                            params: testCase.params,
+                            body: testCase.body,
+                            dataType: testCase.dataType
+                        }
+                    };
+
+                    currentResults.push(enhancedResult);
+
+                    const enhancedTestCase = {
+                        ...testCase,
+                        body: data.requestBody,
+                        fullUrl: data.fullUrl || testCase.endpoint
+                    };
+
+                    addTestCase(enhancedTestCase, enhancedResult, index);
+
+                    const passed = currentResults.filter(r => r.success).length;
+                    const failed = currentResults.filter(r => !r.success).length;
+                    const totalDuration = currentResults.reduce((sum, r) => sum + (r.duration || 0), 0);
+
+                    updateStats(currentResults.length, passed, failed, totalDuration, currentResults.length);
+                    break;
+
+                case 'complete':
+                    const finalPassed = currentResults.filter(r => r.success).length;
+                    const finalFailed = currentResults.filter(r => !r.success).length;
+                    const passRate = currentResults.length > 0 ? ((finalPassed / currentResults.length) * 100).toFixed(1) : 0;
+
+                    document.getElementById('resultsContainer').innerHTML = `
+                        <div class="alert ${finalFailed > 0 ? 'alert-error' : 'alert-success'}">
+                            <strong>🎉 Tests Completed!</strong><br>
+                            Pass Rate: ${passRate}% (${finalPassed}/${currentResults.length})<br>
+                            <small>Click on test cases below to see detailed request/response information</small>
+                        </div>
+                    `;
+                    document.getElementById('resultsActions').style.display = 'flex';
+                    setLoading(false);
+                    break;
+
+                case 'error':
+                    document.getElementById('resultsContainer').innerHTML = `
+                        <div class="alert alert-error">
+                            <strong>Error:</strong> ${data.error}
+                        </div>
+                    `;
+                    setLoading(false);
+                    break;
+            }
+        }
+
+        async function runTests(apiDescription) {
+            if (isRunning) return;
+
+            setLoading(true);
+            currentTests = [];
+            currentResults = [];
+            document.getElementById('testCasesContainer').innerHTML = '';
+
+            await callAiParser(apiDescription);
+        }
+
+        function loadDemo() {
+            const demoData = `
+              API Documentation for Testing:
+
+              POST http://127.0.0.1:8000/register — requires username, email, and password as QUERY PARAMETERS. Returns 200 OK if successful.
+
+              POST http://127.0.0.1:8000/login — requires email and password as QUERY PARAMETERS. Returns 200 OK with JSON token.
+
+              GET http://127.0.0.1:8000/user/{username} — requires x-token header with value "mocked-jwt-token". Returns 200 OK with user data. Use real username like "johndoe".
+
+              PUT http://127.0.0.1:8000/user/{username} — optional email/password as QUERY PARAMETERS, requires x-token header with value "mocked-jwt-token". Returns 200 OK.
+
+              DELETE http://127.0.0.1:8000/user/{username} — requires x-token header with value "mocked-jwt-token". Returns 200 OK if successful.
+
+              POST http://127.0.0.1:8000/posts — requires title and content as QUERY PARAMETERS. Returns 201 Created.
+
+              GET http://127.0.0.1:8000/posts?skip=0&limit=10 — returns array of posts.
+
+              GET http://127.0.0.1:8000/posts/{post_id} — returns post detail or 404 if not found. Use numeric ID like 1, 2, 3.
+
+              POST http://127.0.0.1:8000/feedback — accepts JSON body with "message" and "rating". Returns 200 OK with feedback details.
+
+              CRITICAL: This FastAPI uses Query parameters for ALL POST and PUT endpoints, not body data, except for the /feedback endpoint which accepts JSON body.
+              Use dataType: "query" for ALL POST and PUT requests except /feedback, which uses dataType: "json".
+              Use x-token header (with dash, not underscore) with exact value "mocked-jwt-token" for authenticated endpoints.
+              Use realistic test data like "johndoe", "john@example.com", "SecurePass123".
+              `;
+
+            document.getElementById('apiDescription').value = demoData;
+            autoResizeTextarea();
+        }
+
+        function autoResizeTextarea() {
+            const textarea = document.getElementById('apiDescription');
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+
+        function expandAllDetails() {
+            const details = document.querySelectorAll('.collapsible-content');
+            const toggles = document.querySelectorAll('.expand-toggle');
+
+            details.forEach(detail => detail.classList.add('expanded'));
+            toggles.forEach(toggle => toggle.textContent = '📋 Hide Details');
+        }
+
+        function collapseAllDetails() {
+            const details = document.querySelectorAll('.collapsible-content');
+            const toggles = document.querySelectorAll('.expand-toggle');
+
+            details.forEach(detail => detail.classList.remove('expanded'));
+            toggles.forEach(toggle => toggle.textContent = '📋 Show Details');
+        }
+
+        function exportResults() {
+            const stats = {
+                totalTests: document.getElementById('totalTests').textContent,
+                passedTests: document.getElementById('passedTests').textContent,
+                failedTests: document.getElementById('failedTests').textContent,
+                duration: document.getElementById('duration').textContent
+            };
+
+            const testCases = currentResults.map((result, index) => ({
+                name: result.name,
+                method: result.method,
+                success: result.success,
+                duration: result.duration,
+                endpoint: currentTests[index]?.endpoint || 'Unknown',
+                error: result.error || null,
+                response: result.response || null,
+                requestDetails: result.requestDetails || null
+            }));
+
+            const report = {
+                timestamp: new Date().toISOString(),
+                summary: stats,
+                testCases: testCases
+            };
+
+            const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `api-test-report-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        document.getElementById('testForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const apiDescription = document.getElementById('apiDescription').value.trim();
+            if (!apiDescription) {
+                alert('Please enter an API description');
+                return;
+            }
+
+            await runTests(apiDescription);
+        });
+
+        document.getElementById('apiDescription').addEventListener('input', autoResizeTextarea);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (!isRunning) {
+                        document.getElementById('testForm').dispatchEvent(new Event('submit'));
+                    }
+                } else if (e.key === 'k') {
+                    e.preventDefault();
+                    clearResults();
+                } else if (e.key === 'd') {
+                    e.preventDefault();
+                    loadDemo();
+                }
+            }
+        });
+
+        // Initialize
+        autoResizeTextarea();
+    </script>
+</body>
+</html>

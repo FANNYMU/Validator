@@ -1,29 +1,315 @@
+import express from "express";
+import path from "path";
 import { requestGeneratorXml } from "./core/ai";
-import { aiParser } from "./core/parse";
+import { sendHttpRequest } from "./core/sendHttpRequest";
+import chalk from "chalk";
 
-aiParser(`
-  API Documentation for Testing:
+const app = express();
+const PORT = process.env.PORT || 1234;
 
-  POST http://127.0.0.1:8000/register — requires username, email, and password as QUERY PARAMETERS. Returns 200 OK if successful.
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "../src/templates"));
 
-  POST http://127.0.0.1:8000/login — requires email and password as QUERY PARAMETERS. Returns 200 OK with JSON token.
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, "public")));
 
-  GET http://127.0.0.1:8000/user/{username} — requires x-token header with value "mocked-jwt-token". Returns 200 OK with user data. Use real username like "johndoe".
+interface TestResult {
+  name: string;
+  method: string;
+  success: boolean;
+  duration: number;
+  statusCode?: number;
+  error?: string;
+  response?: any;
+  responseHeaders?: Record<string, string>;
+}
 
-  PUT http://127.0.0.1:8000/user/{username} — optional email/password as QUERY PARAMETERS, requires x-token header with value "mocked-jwt-token". Returns 200 OK.
+function formatJson(obj: any, indent: number = 2): string {
+  return JSON.stringify(obj, null, indent);
+}
 
-  DELETE http://127.0.0.1:8000/user/{username} — requires x-token header with value "mocked-jwt-token". Returns 200 OK if successful.
+function methodColor(method: string) {
+  switch (method.toUpperCase()) {
+    case "GET":
+      return chalk.green(method);
+    case "POST":
+      return chalk.blue(method);
+    case "PUT":
+      return chalk.yellow(method);
+    case "DELETE":
+      return chalk.red(method);
+    default:
+      return chalk.white(method);
+  }
+}
 
-  POST http://127.0.0.1:8000/posts — requires title and content as QUERY PARAMETERS. Returns 201 Created.
+function statusBadge(success: boolean) {
+  return success ? chalk.bgGreen.black(" PASS ") : chalk.bgRed.white(" FAIL ");
+}
 
-  GET http://127.0.0.1:8000/posts?skip=0&limit=10 — returns array of posts.
+async function streamingAiParser(prompt: string, res: express.Response) {
+  try {
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Cache-Control",
+    });
 
-  GET http://127.0.0.1:8000/posts/{post_id} — returns post detail or 404 if not found. Use numeric ID like 1, 2, 3.
+    const sendData = (data: any) => {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
 
-  POST http://127.0.0.1:8000/feedback — accepts JSON body with "message" and "rating". Returns 200 OK with feedback details.
+    const aiResponse = await requestGeneratorXml(prompt);
+    if (!aiResponse) {
+      sendData({ type: "error", error: "aiResponse is undefined" });
+      res.end();
+      return;
+    }
 
-  CRITICAL: This FastAPI uses Query parameters for ALL POST and PUT endpoints, not body data, except for the /feedback endpoint which accepts JSON body.
-  Use dataType: "query" for ALL POST and PUT requests except /feedback, which uses dataType: "json".
-  Use x-token header (with dash, not underscore) with exact value "mocked-jwt-token" for authenticated endpoints.
-  Use realistic test data like "johndoe", "john@example.com", "SecurePass123".
-  `);
+    const testCases = JSON.parse(aiResponse);
+    if (!Array.isArray(testCases)) {
+      sendData({ type: "error", error: "Expected an array of test cases" });
+      res.end();
+      return;
+    }
+
+    const results: TestResult[] = [];
+    const startTime = Date.now();
+
+    sendData({
+      type: "start",
+      message: "Starting API test suite",
+      totalTests: testCases.length,
+    });
+
+    for (let i = 0; i < testCases.length; i++) {
+      const test = testCases[i];
+      const {
+        name,
+        method,
+        endpoint,
+        headers: testHeaders = {},
+        params = {},
+        dataType = "json",
+      } = test;
+
+      const fullUrl = endpoint.startsWith("http")
+        ? endpoint
+        : `http://${endpoint}`;
+      let url = fullUrl;
+      let body: any = null;
+      let headers: Record<string, string> = { ...testHeaders };
+
+      if (
+        params &&
+        typeof params === "object" &&
+        Object.keys(params).length > 0
+      ) {
+        if (
+          dataType === "query" ||
+          ["GET", "DELETE"].includes(method.toUpperCase())
+        ) {
+          const query = new URLSearchParams(params).toString();
+          if (query) {
+            const separator = url.includes("?") ? "&" : "?";
+            url += `${separator}${query}`;
+          }
+        } else if (dataType === "form") {
+          body = params;
+          if (!headers["Content-Type"] && !headers["content-type"]) {
+            headers["Content-Type"] = "application/x-www-form-urlencoded";
+          }
+        } else {
+          body = params;
+          if (!headers["Content-Type"] && !headers["content-type"]) {
+            headers["Content-Type"] = "application/json";
+          }
+        }
+      }
+
+      sendData({
+        type: "test_start",
+        index: i,
+        total: testCases.length,
+        testCase: {
+          name,
+          method,
+          endpoint: url,
+          headers,
+          params,
+          dataType,
+          body,
+        },
+      });
+
+      const requestStart = Date.now();
+      let testResult: TestResult;
+
+      try {
+        const httpResponse = await sendHttpRequest(url, method, body, headers);
+        const duration = Date.now() - requestStart;
+
+        testResult = {
+          name,
+          method,
+          success: true,
+          duration,
+          statusCode: httpResponse.status,
+          response: httpResponse.data,
+          responseHeaders: httpResponse.headers,
+        };
+
+        console.log(statusBadge(true) + chalk.green.bold(" SUCCESS!"));
+        console.log(chalk.green(`⚡ Duration: ${chalk.bold(duration + "ms")}`));
+        console.log(chalk.green("📤 RESPONSE:"));
+        console.log(chalk.green(formatJson(httpResponse.data)));
+      } catch (error: any) {
+        const duration = Date.now() - requestStart;
+
+        testResult = {
+          name,
+          method,
+          success: false,
+          duration,
+          error: error.message || "Unknown error",
+          response: null,
+        };
+
+        console.log(statusBadge(false) + chalk.red.bold(" FAILED!"));
+        console.log(chalk.red(`⚡ Duration: ${chalk.bold(duration + "ms")}`));
+        console.log(chalk.red("❌ ERROR:"));
+        console.log(chalk.red(`    ${error.message || "Unknown error"}`));
+      }
+
+      results.push(testResult);
+
+      sendData({
+        type: "test_complete",
+        index: i,
+        testCase: {
+          name,
+          method,
+          endpoint: url,
+          headers,
+          params,
+          dataType,
+          body,
+          fullUrl: url,
+        },
+        result: testResult,
+        response: testResult.response,
+        responseHeaders: testResult.responseHeaders,
+        requestBody: body,
+        fullUrl: url,
+      });
+    }
+
+    const totalDuration = Date.now() - startTime;
+    const passed = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+    const passRate = ((passed / results.length) * 100).toFixed(1);
+
+    // Log final summary to console
+    console.log(chalk.cyan.bold("📊 TEST EXECUTION SUMMARY"));
+    console.log(chalk.cyan("══════════════════════════════════════"));
+    console.log(
+      chalk.white(
+        `📝 Total Tests:     ${chalk.bold(results.length.toString())}`,
+      ),
+    );
+    console.log(
+      chalk.green(`✅ Passed:          ${chalk.bold(passed.toString())}`),
+    );
+    console.log(
+      chalk.red(`❌ Failed:          ${chalk.bold(failed.toString())}`),
+    );
+    console.log(
+      chalk.yellow(`📈 Pass Rate:       ${chalk.bold(passRate + "%")}`),
+    );
+    console.log(
+      chalk.blue(`⏱️  Total Duration:  ${chalk.bold(totalDuration + "ms")}`),
+    );
+
+    sendData({
+      type: "complete",
+      summary: {
+        total: results.length,
+        passed,
+        failed,
+        passRate,
+        totalDuration,
+      },
+    });
+
+    res.end();
+  } catch (error: any) {
+    console.error("Streaming error:", error);
+    res.write(
+      `data: ${JSON.stringify({ type: "error", error: error.message })}\n\n`,
+    );
+    res.end();
+  }
+}
+
+app.get("/", (req, res) => {
+  res.render("index", {
+    title: "API Test Generator Dashboard",
+    message: "Welcome to the AI-powered API testing dashboard",
+  });
+});
+
+app.get("/dashboard", (req, res) => {
+  res.render("index", {
+    title: "API Test Generator Dashboard",
+    message: "Welcome to the AI-powered API testing dashboard",
+  });
+});
+
+app.post("/api/parse", (req: express.Request, res: express.Response) => {
+  (async () => {
+    try {
+      const { prompt } = req.body;
+
+      if (!prompt) {
+        res.status(400).json({ error: "Prompt is required" });
+        return;
+      }
+
+      await streamingAiParser(prompt, res);
+    } catch (error: any) {
+      console.error("API parse error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  })();
+});
+
+app.get("/health", (req, res) => {
+  res.json({ status: "OK", timestamp: new Date().toISOString() });
+});
+
+app.use((req, res) => {
+  res.status(404).json({ error: "Not Found" });
+});
+
+app.use(
+  (
+    err: Error,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    console.error(err.stack);
+    res.status(500).json({ error: "Something went wrong!" });
+  },
+);
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`📊 Dashboard available at http://localhost:${PORT}/dashboard`);
+});
+
+module.exports = app;

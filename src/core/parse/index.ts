@@ -2,10 +2,6 @@ import { requestGeneratorXml } from "../ai";
 import { sendHttpRequest } from "../sendHttpRequest";
 import chalk from "chalk";
 
-function prettyPrintJSON(obj: any): string {
-  return JSON.stringify(obj, null, 2);
-}
-
 interface TestResult {
   name: string;
   method: string;
@@ -13,6 +9,12 @@ interface TestResult {
   duration: number;
   statusCode?: number;
   error?: string;
+  response?: any;
+  responseHeaders?: Record<string, string>;
+}
+
+function prettyPrintJSON(obj: any): string {
+  return JSON.stringify(obj, null, 2);
 }
 
 function divider() {
@@ -61,16 +63,44 @@ function formatJson(obj: any, indent: number = 2): string {
     .join("\n");
 }
 
-export async function requestToAi(prompt: string) {
+export async function requestToAi(prompt?: string) {
   try {
-    const response = await requestGeneratorXml(prompt);
+    const defaultPrompt = `
+      API Documentation for Testing:
+
+      POST http://127.0.0.1:8000/register — requires username, email, and password as QUERY PARAMETERS. Returns 200 OK if successful.
+
+      POST http://127.0.0.1:8000/login — requires email and password as QUERY PARAMETERS. Returns 200 OK with JSON token.
+
+      GET http://127.0.0.1:8000/user/{username} — requires x-token header with value "mocked-jwt-token". Returns 200 OK with user data. Use real username like "johndoe".
+
+      PUT http://127.0.0.1:8000/user/{username} — optional email/password as QUERY PARAMETERS, requires x-token header with value "mocked-jwt-token". Returns 200 OK.
+
+      DELETE http://127.0.0.1:8000/user/{username} — requires x-token header with value "mocked-jwt-token". Returns 200 OK if successful.
+
+      POST http://127.0.0.1:8000/posts — requires title and content as QUERY PARAMETERS. Returns 201 Created.
+
+      GET http://127.0.0.1:8000/posts?skip=0&limit=10 — returns array of posts.
+
+      GET http://127.0.0.1:8000/posts/{post_id} — returns post detail or 404 if not found. Use numeric ID like 1, 2, 3.
+
+      POST http://127.0.0.1:8000/feedback — accepts JSON body with "message" and "rating". Returns 200 OK with feedback details.
+
+      CRITICAL: This FastAPI uses Query parameters for ALL POST and PUT endpoints, not body data, except for the /feedback endpoint which accepts JSON body.
+      Use dataType: "query" for ALL POST and PUT requests except /feedback, which uses dataType: "json".
+      Use x-token header (with dash, not underscore) with exact value "mocked-jwt-token" for authenticated endpoints.
+      Use realistic test data like "johndoe", "john@example.com", "SecurePass123".
+      `;
+
+    const response = await requestGeneratorXml(prompt || defaultPrompt);
     return response ?? "";
   } catch (err) {
     console.error("[requestToAi]: " + err);
+    return "";
   }
 }
 
-export async function aiParser(prompt: string) {
+export async function aiParser(prompt?: string) {
   const aiResponse = await requestToAi(prompt);
   if (!aiResponse) {
     throw new Error("aiResponse is undefined");
@@ -180,7 +210,7 @@ export async function aiParser(prompt: string) {
       let testResult: TestResult;
 
       try {
-        const result = await sendHttpRequest(url, method, body, headers);
+        const httpResponse = await sendHttpRequest(url, method, body, headers);
         const duration = Date.now() - requestStart;
 
         testResult = {
@@ -188,13 +218,15 @@ export async function aiParser(prompt: string) {
           method,
           success: true,
           duration,
-          statusCode: 200,
+          statusCode: httpResponse.status,
+          response: httpResponse.data,
+          responseHeaders: httpResponse.headers,
         };
 
         console.log(statusBadge(true) + chalk.green.bold(" SUCCESS!"));
         console.log(chalk.green(`⚡ Duration: ${chalk.bold(duration + "ms")}`));
         console.log(chalk.green("📤 RESPONSE:"));
-        console.log(chalk.green(formatJson(result)));
+        console.log(chalk.green(formatJson(httpResponse.data)));
       } catch (error: any) {
         const duration = Date.now() - requestStart;
 
@@ -250,6 +282,7 @@ export async function aiParser(prompt: string) {
     );
     spacer();
 
+    // Failed Tests Details
     if (failed > 0) {
       console.log(chalk.red.bold("❌ FAILED TESTS:"));
       results
@@ -272,7 +305,10 @@ export async function aiParser(prompt: string) {
 
     console.log(completionStatus);
     spacer();
+
+    return results;
   } catch (error) {
     console.error(chalk.bgRed.white("[aiParser Error]: "), error);
+    throw error;
   }
 }
