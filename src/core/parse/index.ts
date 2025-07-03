@@ -54,10 +54,6 @@ function statusBadge(success: boolean) {
   return success ? chalk.bgGreen.black(" PASS ") : chalk.bgRed.white(" FAIL ");
 }
 
-function statusIcon(success: boolean) {
-  return success ? chalk.green("✅") : chalk.red("❌");
-}
-
 function formatJson(obj: any, indent: number = 2): string {
   return JSON.stringify(obj, null, indent)
     .split("\n")

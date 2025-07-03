@@ -1,4 +1,4 @@
-import groq from "../../utils/groq";
+import groqInstance from "../../utils/groq";
 
 const aiSystemPrompt = `
 You are an API test case generator.
@@ -46,28 +46,19 @@ Wrap all test cases in a JSON array. Respond ONLY with JSON. No explanations, no
 If input is ambiguous or incomplete, make realistic assumptions based on common API patterns.
 `;
 
-export async function requestGeneratorXml(prompt: string) {
+export async function requestGeneratorXml(prompt: string): Promise<string> {
   try {
-    const response = await groq.groq.chat.completions.create({
+    const response = await groqInstance.groqInstance.chat.completions.create({
       messages: [
-        {
-          role: "system",
-          content: aiSystemPrompt,
-        },
-        {
-          role: "user",
-
-          content: prompt,
-        },
+        { role: "system", content: aiSystemPrompt },
+        { role: "user", content: prompt },
       ],
-
       model: "llama-3.3-70b-versatile",
     });
 
-    return response.choices[0]?.message?.content || "";
-    // return response || "";
+    return response.choices?.[0]?.message?.content ?? "";
   } catch (err) {
-    console.error("[requestGeneratorXml]: " + err);
-    return;
+    console.error(`[requestGeneratorXml]: ${err}`);
+    return "";
   }
 }
